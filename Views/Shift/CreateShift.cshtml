@@ -1,0 +1,65 @@
+﻿@model MyTelerikProject.Models.Shift
+
+@{
+    ViewData["Title"] = "Create Shift";
+}
+
+<h2>Create Shift</h2>
+<div class="d-flex justify-content-center">
+<form id="createShiftForm">
+        <div class="form-group custom-col">
+        <label for="assignedToStation">Assigned To Station:</label>
+        <input type="text" class="form-control" id="assignedToStation" name="assignedToStation">
+    </div>
+        <div class="form-group custom-col">
+        <label for="shiftDateTime">Shift Date</label>
+        <input type="date" class="form-control" id="shiftDateTime" name="shiftDateTime">
+    </div>
+        <div class="form-group custom-col">
+        <label for="startTime">Start Time:</label>
+        <input type="time" class="form-control" id="startTime" name="startTime">
+    </div>
+        <div class="form-group custom-col">
+        <label for="endTime">End Time:</label>
+        <input type="time" class="form-control" id="endTime" name="endTime">
+    </div>
+    <button type="submit" class="btn btn-primary">Create</button>
+</form>
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            console.log("Document ready.");
+            $('#createShiftForm').submit(function (event) {
+                event.preventDefault(); // Prevent the default form submission
+                console.log('Form submitted.');
+                var formData = new FormData($('#createShiftForm')[0]); // Create a FormData object from the form
+
+                $.ajax({
+                    url: '/Shift/CreateShift',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false, // Set contentType to false, jQuery will automatically set it to multipart/form-data
+                    processData: false,
+                    success: function (response) {
+                        if (response && response.success) {
+                            // Shift created successfully
+                            // Show success message or perform any desired actions
+                            alert('Shift created successfully');
+                            location.href = '/Home/Index'; // Redirect to the index page
+                        } else if (response && !response.success && response.message) {
+                            // Shift creation failed
+                            // Show error message or perform any desired actions
+                            alert(response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        alert('An error occurred while creating the shift.'); // Display a generic error message
+                        console.log(error);
+                        // Display an error message or perform additional error handling
+                    }
+                });
+            });
+        });
+    </script>
+}

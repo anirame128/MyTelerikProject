@@ -1,0 +1,53 @@
+﻿@model List<MyTelerikProject.Models.Shift>
+
+@{
+    var employeeNumber = TempData["EmployeeNumber"];
+    
+}
+@if(employeeNumber != null)
+{
+<h4>Shifts:</h4>
+
+@using (Html.BeginForm("ThankYou", "Home", new { employeeNumber  }, FormMethod.Post))
+{
+    
+    @Html.Kendo().DropDownList().Name("Shifts").DataTextField("ShiftDateTimeFormatted").DataValueField("Id").OptionLabel("Select a Shift").HtmlAttributes(new { style = "width: 300px", id = "shiftsDropdown" }).DataSource(source => source.Read(read => read.Action("GetShifts", "Shift"))).Template("#= ShiftDateTimeFormatted # - #= assignedToStation #")
+    
+    <input type="submit" value="Submit" class="btn btn-primary" />
+}
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            var dropdown = $('#shiftsDropdown').data("kendoDropDownList");
+
+            dropdown.bind("change", function () {
+                var selectedValue = dropdown.value();
+                var selectedText = dropdown.text();
+                if (selectedValue === "") {
+                    dropdown.setOptions({
+                        optionLabel: "Select a Shift"
+                    });
+                } else {
+                    
+                    dropdown.setOptions({
+                        optionLabel: selectedText
+                    });
+                }
+            });
+            $.ajax({
+                url: '/Shift/GetShifts',
+                type: 'GET',
+                success: function (data) {
+                    dropdown.dataSource.data(data);
+                    dropdown.refresh();
+                }
+            });
+        });
+    </script>
+}
+}
+else
+{
+    <h4>You cannot authorize this page. Please enter your Employee Number</h4>
+}

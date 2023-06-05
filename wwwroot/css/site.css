@@ -1,0 +1,55 @@
+/* site.css */
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(-100px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .thank-you-heading {
+        animation: fadeInUp 1s ease-out forwards;
+    }
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    background-color: #f8f9fa;
+    margin-bottom: 60px;
+}
+
+.container {
+    text-align: center;
+    padding-top: 100px;
+    position: relative;
+    overflow: hidden;
+}
+
+.thank-you-heading {
+    font-size: 48px;
+    color: #007bff;
+    display: inline-block;
+    position: relative;
+}
+
+
+.custom-col {
+    width: 400px;
+    margin: 10px;
+}

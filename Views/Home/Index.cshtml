@@ -1,0 +1,50 @@
+﻿@using Kendo.Mvc.UI
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+@if (User.Identity.IsAuthenticated)
+{
+    // Show authenticated user information or any other content you want
+    <h1>Welcome!</h1>
+}
+
+else {
+<div style="text-align: center; margin-top: 20px;">
+    <h2>Sign Up For OT</h2>
+    <h4>Scan Employee Card</h4>
+    <input id="employeeNumberInput" type="password" />
+    <button id="submitButton" class="btn btn-primary">Submit</button>
+</div>
+}
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $('#submitButton').on('click', function () {
+                var employeeNumber = $('#employeeNumberInput').val();
+                var maskedEmployeeNumber = "*".repeat(employeeNumber.length);
+                // Perform an AJAX request to check if the employee number is valid
+                $('#employeeNumberInput').val(maskedEmployeeNumber);
+                $.ajax({
+                    url: '/Home/CheckEmployeeNumber',
+                    type: 'POST',
+                    data: { employeeNumber: employeeNumber },
+                    success: function (response) {
+                        if (response.valid) {
+                            // Valid employee number, redirect to the Shift/Index view
+                            window.location.href = '/Shift/Index';
+                        } else {
+                            // Invalid employee number, display an error message or take appropriate action
+                            alert('Invalid employee number. Please try again.');
+                        }
+                    },
+                    error: function () {
+                        // Handle the error case
+                        alert('Error occurred while checking the employee number. Please try again.');
+                    }
+                });
+            });
+        });
+    </script>
+}

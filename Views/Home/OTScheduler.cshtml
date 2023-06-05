@@ -1,0 +1,266 @@
+﻿<style>
+    .card {
+        display: inline-block;
+        margin-right: 10px;
+        vertical-align: top;
+    }
+    .list-group-item {
+        margin: 10px;
+    }
+  
+    .training {
+        background-color: yellow;
+    }
+
+    .skilled {
+        background-color: green;
+    }
+     .k-state-disabled {
+        opacity: 0.5; /* Adjust the opacity or style as desired */
+        pointer-events: none;
+    }
+
+</style>
+
+@using Kendo.Mvc.UI
+@{
+    ViewData["Title"] = "OT Scheduler";
+}
+@Html.Kendo().DropDownList().Name("Shifts").DataTextField("ShiftDateTimeFormatted").DataValueField("Id").OptionLabel("Select a Shift").HtmlAttributes(new { style = "width: 300px", id = "shiftsDropdown" }).DataSource(source => source.Read(read => read.Action("GetShifts", "Shift"))).Template("#= ShiftDateTimeFormatted # - #= assignedToStation #")
+
+@*<input type="submit" value="Submit" class="btn btn-primary" />
+*@<div class="card" style="width: 10rem;">
+    <ul class="list-group list-group-flush">
+        <h5 class="card-header">Available Users</h5>
+    </ul>
+    @(Html.Kendo().ListBox()
+        .Name("availableUsers")
+        .DataValueField("Id")
+        .DataTextField("firstName")
+        .Draggable(true) // Enable drag and drop
+        .DropSources("S1" , "S2") // Specify the drop targets
+        .Events(ev => ev
+        .Add("function(e){setDiscontinued(e, true)}")
+        .Remove("function(e){setDiscontinued(e, false)}"))
+        .ConnectWith("S1,S2") // Connect with the other listboxes
+        .BindTo(Model)
+        .Selectable(ListBoxSelectable.Single)
+        )
+</div>
+
+<div class="card" style="width: 20rem;">
+    <h5 class="card-header">S1</h5>
+    <div class="row">
+        <div class="col-5">
+            <ul class="list-group list-group-flush">
+                
+                <li class="list-group-item">Row 1:</li>
+                <li class="list-group-item">Row 2:</li>
+                <li class="list-group-item">Row 3:</li>
+                <li class="list-group-item">Row 4:</li>
+            </ul>
+        </div>
+        <div class="col-7">
+            @(Html.Kendo().ListBox()
+                .Name("S1")
+                .Draggable(true)
+                .DropSources("availableUsers", "S2")
+                .DataValueField("Id")
+                .DataTextField("firstName")
+                .ConnectWith("availableUsers, S2")
+                .BindTo(new List<User>())
+                .Selectable(ListBoxSelectable.Single)
+                .Template("<div class='list-item'>#: firstName #</div>")
+                .HtmlAttributes(new { style = "height: 300px;" })
+                .Events(ev => ev.Change("listboxChange"))
+                )
+        </div>
+    </div>
+</div>
+
+<div class="card" style="width: 20rem;">
+    <h5 class="card-header">S2</h5>
+    <div class="row">
+        <div class="col-5">
+            <ul class="list-group list-group-flush">
+               
+                <li class="list-group-item">Row 1:</li>
+                <li class="list-group-item">Row 2:</li>
+                <li class="list-group-item">Row 3:</li>
+                <li class="list-group-item">Row 4:</li>
+            </ul>
+        </div>
+        <div class="col-7">
+            @(Html.Kendo().ListBox()
+                .Name("S2")
+                .Draggable(true)
+                .DropSources("availableUsers", "S1", "S2")
+                .DataValueField("Id")
+                .DataTextField("firstName")
+                .ConnectWith("availableUsers,S1")
+                .BindTo(new List<User>())
+                .Selectable(ListBoxSelectable.Single)
+                .Template("<div class='list-item'>#: firstName #</div>")
+                .HtmlAttributes(new { style = "height: 300px;" })
+                .Events(ev => ev.Change("listboxChange"))
+                )
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        function setDiscontinued(e, value) {
+            var dataItem = e.items[0].dataItem;
+            if (dataItem) {
+                dataItem.set("isDiscontinued", value); // Update the property name
+
+                if (!value) {
+                    var listbox = e.sender;
+                    if (listbox === $("#S1").data("kendoListBox")) {
+                        $("#availableUsers").data("kendoListBox").dataSource.add(dataItem);
+                        updateHasBeenAssigned(dataItem.id, true, "S1");
+
+                        // Update assignedToStation value in the database via AJAX
+                        updateAssignedToStation(dataItem.id, "S1");
+                    } else if (listbox === $("#S2").data("kendoListBox")) {
+                        $("#availableUsers").data("kendoListBox").dataSource.add(dataItem);
+                        updateHasBeenAssigned(dataItem.id, true, "S2");
+
+                        // Update assignedToStation value in the database via AJAX
+                        updateAssignedToStation(dataItem.id, "S2");
+                    }
+                } else {
+                    var listbox = e.sender;
+                    if (listbox === $("#availableUsers").data("kendoListBox")) {
+                        var S1 = $("#S1").data("kendoListBox");
+                        var S2 = $("#S2").data("kendoListBox");
+                        var itemIndex = S1.dataSource.indexOf(dataItem);
+                        if (itemIndex >= 0) {
+                            S1.dataSource.remove(dataItem);
+                            updateHasBeenAssigned(dataItem.id, false, "S1");
+
+                            // Update assignedToStation value in the database via AJAX
+                            updateAssignedToStation(dataItem.id, "");
+                        } else {
+                            itemIndex = S2.dataSource.indexOf(dataItem);
+                            if (itemIndex >= 0) {
+                                S2.dataSource.remove(dataItem);
+                                updateHasBeenAssigned(dataItem.id, false, "S2");
+
+                                // Update assignedToStation value in the database via AJAX
+                                updateAssignedToStation(dataItem.id, "");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateAssignedToStation(userId, assignedToStation) {
+            $.ajax({
+                url: '/User/UpdateAssignedToStation',
+                type: 'POST',
+                data: { userId: userId, assignedToStation: assignedToStation },
+                success: function (data) {
+                    // Update successful
+                },
+                error: function (error) {
+                    // Handle error
+                }
+            });
+
+            // Store assignedToStation value in a cookie
+            Cookies.set("assignedToStation_" + userId, assignedToStation);
+        }
+
+    </script>
+    <script>
+        $(document).ready(function () {
+            var dropdown = $('#shiftsDropdown').data("kendoDropDownList");
+            var availableUsersList = $("#availableUsers").data("kendoListBox");
+
+            dropdown.bind("change", function () {
+                var selectedValue = dropdown.value();
+                var selectedText = dropdown.text();
+                var optionLabel = "Select a Shift";
+
+                if (selectedValue !== "" && selectedValue != "Select a Shift") {
+                    optionLabel = selectedText;
+
+                    $.ajax({
+                        url: '/Shift/GetShiftUsers',
+                        type: 'POST',
+                        data: { shiftId: selectedValue },
+                        success: function (data) {
+                            availableUsersList.dataSource.data(data);
+                            availableUsersList.refresh();
+                        }
+                    });
+                } else {
+                    dropdown.setOptions({
+                        optionLabel: optionLabel
+                    });
+
+                    availableUsersList.dataSource.data([]); // Clear the data source
+                    availableUsersList.refresh();
+                }
+            });
+
+            // Fetch initial shift data
+            $.ajax({
+                url: '/Shift/GetShifts',
+                type: 'GET',
+                success: function (data) {
+                    dropdown.dataSource.data(data);
+                    dropdown.refresh();
+                }
+            });
+        });
+    </script>
+
+    <script>
+        function listboxChange(e) {
+            var listbox = e.sender;
+            var dataItem = listbox.dataItem(e.item);
+            var targetListBox = listbox.element.closest('.card').next('.card').find('.k-listbox').data('kendoListBox');
+            if (targetListBox) {
+                var maxItemsCount = 4; // Maximum allowed items per row
+
+                if (targetListBox.items().length < maxItemsCount) {
+                    targetListBox.dataSource.add(dataItem);
+                    listbox.dataSource.remove(dataItem);
+
+                    // Check if the maximum number of items has been reached
+                    if (targetListBox.items().length === maxItemsCount) {
+                        // Disable the draggable functionality or hide the available items
+                        listbox.element.find('.k-item').addClass('k-state-disabled');
+                    }
+                } else {
+                    // Display an alert or handle the case where the maximum number of items is reached
+                    alert('Maximum number of items reached for this row.');
+                }
+            }
+            var listItems = listbox.items();
+
+            // Loop through each item and update the background color based on trainingLevel
+            listItems.each(function () {
+                var item = $(this);
+                var itemData = listbox.dataItem(item);
+                var trainingLevel = itemData.trainingLevel;
+
+                if (trainingLevel === 'Training') {
+                    item.addClass('training');
+                } else if (trainingLevel === 'Skilled') {
+                    item.addClass('skilled');
+                } else {
+                    item.removeClass('training skilled');
+                }
+
+                // Store the assignedToStation value in a cookie
+                Cookies.set("assignedToStation_" + itemData.id, listbox.element.attr('id'));
+            });
+        }
+    </script>
+
+}
